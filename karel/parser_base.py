@@ -29,10 +29,10 @@ class Parser(object):
         self.lexer = lex.lex(module=self, debug=self.debug)
 
         self.yacc, self.grammar = yacc.yacc(
-                module=self,
-                debug=self.debug,
-                tabmodule="_parsetab",
-                with_grammar=True)
+            module=self,
+            debug=self.debug,
+            tabmodule="_parsetab",
+            with_grammar=True)
 
         self.prodnames = self.grammar.Prodnames
 
@@ -56,9 +56,9 @@ class Parser(object):
         self.tokens_details = ['END'] + self.tokens_details
 
         self.idx_to_token_details = {
-                idx: token for idx, token in enumerate(self.tokens_details) }
+            idx: token for idx, token in enumerate(self.tokens_details) }
         self.token_to_idx_details = {
-                token:idx for idx, token in self.idx_to_token_details.items() }
+            token:idx for idx, token in self.idx_to_token_details.items() }
 
         self.rng = get_rng(rng)
         self.flush_hit_info()
@@ -143,7 +143,7 @@ class Parser(object):
                     action_candidates.append(idx)
 
             idxes = self.rng.choice(
-                    action_candidates, min(len(action_candidates), count_diff))
+                action_candidates, min(len(action_candidates), count_diff))
             for idx in idxes:
                 tokens[idx] = self.t_MOVE
             code = " ".join(tokens)
@@ -201,14 +201,17 @@ def get_hash():
 
 def parser_prompt(parser):
     import argparse
-    from prompt_toolkit import prompt
-    from prompt_toolkit.token import Token
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.formatted_text import HTML
+    from prompt_toolkit.patch_stdout import patch_stdout
 
-    def continuation_tokens(cli, width):
-        return [(Token, ' ' * (width - 5) + '.' * 3 + ':')]
+    def continuation(width, line_number, is_soft_wrap):
+        # Simple indentation for multiline input
+        return ' ' * (width - 5) + '...: '
 
-    def is_multi_line(line):
-        return line.strip()
+    def is_multiline(text):
+        # Accept multiline until the user types an empty line
+        return not text.endswith('\n\n')
 
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('--debug', type=str2bool, default=False)
@@ -217,20 +220,30 @@ def parser_prompt(parser):
     arg_parser.add_argument('--world_width', type=int, default=8, help='Width of square grid world')
     args = arg_parser.parse_args()
 
+    session = PromptSession()
     line_no = 1
     parser.debug = args.debug
 
     print('Press [Meta+Enter] or [Esc] followed by [Enter] to accept input.')
     while True:
-        code = prompt(u'In [{}]: '.format(line_no), multiline=True,
-                      get_continuation_tokens=continuation_tokens)
+        try:
+            with patch_stdout():
+                code = session.prompt(
+                    HTML(f'<skyblue>In [{line_no}]: </skyblue>'),
+                    multiline=False,
+                    prompt_continuation=continuation
+                )
 
-        if args.world is not None:
-            parser.new_game(world_path=args.world)
-        else:
-            parser.new_game(world_size=(args.world_width, args.world_height))
+            if args.world is not None:
+                parser.new_game(world_path=args.world)
+            else:
+                parser.new_game(world_size=(args.world_width, args.world_height))
 
-        parser.draw("Input:  ", with_color=True)
-        parser.run(code, debug=False)
-        parser.draw("Output: ")
-        line_no += 1
+            parser.draw("Input:  ", with_color=True)
+            parser.run(code, debug=False)
+            parser.draw("Output: ")
+            line_no += 1
+
+        except (EOFError, KeyboardInterrupt):
+            print("\nExiting...")
+            break

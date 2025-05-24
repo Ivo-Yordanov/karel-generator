@@ -9,7 +9,7 @@ class KarelWithCurlyParser(Parser):
     """
 
     tokens = [
-            'DEF', 'RUN', 
+            'DEF', 'RUN',
             'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'SEMI', 'INT', #'NEWLINE',
             'WHILE', 'REPEAT',
             'IF', 'IFELSE', 'ELSE',
@@ -19,11 +19,11 @@ class KarelWithCurlyParser(Parser):
             'PICK_MARKER', 'PUT_MARKER',
     ]
 
-    t_ignore =' \t\n'
-    t_LPAREN = '\('
-    t_RPAREN = '\)'
-    t_LBRACE = '\{'
-    t_RBRACE = '\}'
+    t_ignore = ' \t\n'
+    t_LPAREN = '('
+    t_RPAREN = ')'
+    t_LBRACE = '{'
+    t_RBRACE = '}'
     t_SEMI   = ';'
 
     t_DEF = 'def'

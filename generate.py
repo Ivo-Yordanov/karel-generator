@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import argparse
+import sys
 from argparse import Namespace
 import numpy as np
 
@@ -51,10 +52,13 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutof
 def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     data_num = getattr(config, "num_{}".format(name))
     inputs, outputs, codes, code_lengths = [], [], [], []
-    for _ in trange(0, data_num, config.num_examples):
-        suitable_code_found = False
-        while not suitable_code_found:
+    for _ in trange(0, data_num, config.num_examples, file=sys.stdout):
+        while True:
             code = parser.random_code(stmt_max_depth=config.max_depth)
+            if config.debug:
+                tqdm.write("")
+                tqdm.write("------------------")
+                tqdm.write(code)
             try:
                 for _ in range(config.num_examples):
                     input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=100)
@@ -65,19 +69,13 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
                     token_idxes = parser.lex_to_idx(code, details=True)
                     codes.append(token_idxes)
                     code_lengths.append(len(token_idxes))
-                if config.debug:
-                    # tqdm.write("\n".join(init_world_str) + "\n")
-                    # tqdm.write("\n".join(parser.draw(no_print=True)) + "\n")
-                    # tqdm.write(beautify(code))
-                    tqdm.write(code)
-                    tqdm.write("------------------" + "\n")
-                suitable_code_found = True
             except TimeoutError:
                 if config.debug:
-                    tqdm.write("Generated too many worlds for code snippet: ")
-                    tqdm.write(code)
-                    tqdm.write("------------------" + "\n")
+                    tqdm.write("Fail. Could not find enough worlds for code snippet.")
                 continue
+            if config.debug:
+                tqdm.write("Pass. Generated enough worlds for code snippet.")
+            break
 
 
     npz_path = os.path.join(config.data_dir, name)

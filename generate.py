@@ -9,7 +9,7 @@ from karel import str2bool, makedirs, pprint, beautify, TimeoutError
 from karel.parser_base import Parser
 
 try:
-    from tqdm import trange
+    from tqdm import trange, tqdm
 except:
     trange = range
 
@@ -27,8 +27,10 @@ def save_code(config: Namespace, parser: Parser, name: str):
         f.write(text)
 
 
-def generate_world_from_code(config: Namespace, parser: Parser, code: str):
-    while True:
+def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutoff=np.inf):
+    i = 0
+    while i < cutoff:
+        i += 1
         parser.new_game(world_size=(config.world_width, config.world_height))
         init_world_str = parser.draw(no_print=True)
         input_world = parser.get_state()
@@ -43,28 +45,40 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str):
 
         return input_world, output_world, init_world_str
 
+    raise TimeoutError("Generated too many worlds for code example")
+
 
 def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     data_num = getattr(config, "num_{}".format(name))
     inputs, outputs, codes, code_lengths = [], [], [], []
     for _ in trange(0, data_num, config.num_examples):
-        code = parser.random_code(stmt_max_depth=config.max_depth)
-        for _ in range(config.num_examples):
-            input_world, output_world, init_world_str = generate_world_from_code(config, parser, code)
+        suitable_code_found = False
+        while not suitable_code_found:
+            code = parser.random_code(stmt_max_depth=config.max_depth)
+            try:
+                for _ in range(config.num_examples):
+                    input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=100)
 
-            if config.debug:
-                print("\n".join(init_world_str), "\n")
-                parser.draw()
-                print()
-                print(beautify(code))
-                print("------------------", "\n")
+                    inputs.append(input_world)
+                    outputs.append(output_world)
 
-            inputs.append(input_world)
-            outputs.append(output_world)
+                    token_idxes = parser.lex_to_idx(code, details=True)
+                    codes.append(token_idxes)
+                    code_lengths.append(len(token_idxes))
+                if config.debug:
+                    # tqdm.write("\n".join(init_world_str) + "\n")
+                    # tqdm.write("\n".join(parser.draw(no_print=True)) + "\n")
+                    # tqdm.write(beautify(code))
+                    tqdm.write(code)
+                    tqdm.write("------------------" + "\n")
+                suitable_code_found = True
+            except TimeoutError:
+                if config.debug:
+                    tqdm.write("Generated too many worlds for code snippet: ")
+                    tqdm.write(code)
+                    tqdm.write("------------------" + "\n")
+                continue
 
-            token_idxes = parser.lex_to_idx(code, details=True)
-            codes.append(token_idxes)
-            code_lengths.append(len(token_idxes))
 
     npz_path = os.path.join(config.data_dir, name)
     np.savez(npz_path,
@@ -92,7 +106,7 @@ def main():
 
     if config.num_train % config.num_examples != 0 or config.num_train % config.num_examples != 0 or \
         config.num_train % config.num_examples != 0:
-        arg_parser.error("Number of examples per generated code and world must be divisible")
+        arg_parser.error("Number of examples must be divisible by the number of examples per generated code")
 
     # Make directories
     makedirs(config.data_dir)

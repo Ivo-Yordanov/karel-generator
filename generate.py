@@ -25,6 +25,7 @@ if __name__ == '__main__':
     data_arg.add_argument('--beautify', type=str2bool, default=False)
     data_arg.add_argument('--world_height', type=int, default=8, help='Height of square grid world')
     data_arg.add_argument('--world_width', type=int, default=8, help='Width of square grid world')
+    data_arg.add_argument('--debug', type=bool, default=False, help='Print generated worlds and code')
     config = data_arg.parse_args()
 
     # Make directories
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             for _ in trange(data_num):
                 while True:
                     parser.new_game(world_size=(config.world_width, config.world_height))
+                    init_world_str = parser.draw(no_print=True)
                     input = parser.get_state()
 
                     code = parser.random_code(stmt_max_depth=config.max_depth)
@@ -73,6 +75,14 @@ if __name__ == '__main__':
                     except IndexError:
                         continue
 
+                    if config.debug:
+                        print("------------------")
+                        print("\n".join(init_world_str), "\n")
+                        parser.draw()
+                        print()
+                        print(code)
+                        print("------------------", "\n")
+
                     inputs.append(input)
                     outputs.append(output)
 
@@ -83,7 +93,7 @@ if __name__ == '__main__':
 
             npz_path = os.path.join(config.data_dir, name)
             np.savez(npz_path,
-                     inputs=inputs,
-                     outputs=outputs,
-                     codes=codes,
-                     code_lengths=code_lengths)
+                     inputs=np.array(inputs, dtype=object),
+                     outputs=np.array(outputs, dtype=object),
+                     codes=np.array(codes, dtype=object),
+                     code_lengths=np.array(code_lengths, dtype=object))

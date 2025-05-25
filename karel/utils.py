@@ -90,7 +90,7 @@ def makedirs(path):
         print(" [*] Make directories : {}".format(path))
         os.makedirs(path)
 
-def get_rng(rng, seed=123):
+def get_rng(rng, seed=1234):
     if rng is None:
         rng = np.random.RandomState(seed)
     return rng

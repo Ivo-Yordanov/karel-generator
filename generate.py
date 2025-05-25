@@ -15,12 +15,21 @@ except:
     trange = range
 
 
-def save_code(config: Namespace, parser: Parser, name: str):
+def generate_random_code(config: Namespace, parser: Parser, name: str):
     data_num = getattr(config, "num_{}".format(name))
+    codes = np.empty(data_num, dtype=str)
+    for i in trange(data_num):
+        code = parser.random_code(stmt_max_depth=config.max_depth)
+        codes[i] = code
+
+    return codes
+
+
+def save_codes(codes: np.ndarray, config: Namespace, name: str):
     text = ""
     text_path = os.path.join(config.data_dir, "{}.txt".format(name))
-    for _ in trange(data_num):
-        code = parser.random_code(stmt_max_depth=config.max_depth)
+
+    for code in codes:
         if config.beautify:
             code = beautify(code)
         text += code + "\n"
@@ -57,6 +66,8 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     for _ in trange(0, data_num, config.num_examples, file=sys.stdout):
         while True:
             code = parser.random_code(stmt_max_depth=config.max_depth)
+            codes.append(code)
+
             if config.debug:
                 tqdm.write("")
                 tqdm.write("------------------")
@@ -70,7 +81,6 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
 
                     token_idxes = parser.lex_to_idx(code, details=True)
                     # codes.append(token_idxes)
-                    codes.append(code)
                     code_lengths.append(len(token_idxes))
             except TimeoutError:
                 if config.debug:
@@ -88,8 +98,10 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
              num_examples_per_code=np.array(config.num_examples),
              inputs=np.array(inputs),
              outputs=np.array(outputs),
-             codes=np.array(codes),
              code_lengths=np.array(code_lengths))
+
+    if config.mode == "both":
+        save_codes(np.array(codes), config, name)
 
 def main():
     arg_parser = argparse.ArgumentParser()
@@ -100,7 +112,7 @@ def main():
     arg_parser.add_argument('--parser_type', type=str, default='curly', choices=['curly', 'synthesis'])
     arg_parser.add_argument('--data_dir', type=str, default='data')
     arg_parser.add_argument('--max_depth', type=int, default=5)
-    arg_parser.add_argument('--mode', type=str, default='examples_and_code', choices=['code_only', 'examples_and_code'],
+    arg_parser.add_argument('--mode', type=str, default='both', choices=['code_only', 'examples_only', 'both'],
                           help='What to save in the output file - only the generated code or also example worlds with that code')
     arg_parser.add_argument('--beautify', type=str2bool, default=False)
     arg_parser.add_argument('--world_height', type=int, default=8, help='Height of square grid world')
@@ -124,7 +136,8 @@ def main():
 
     for name in datasets:
         if config.mode == 'code_only':
-            save_code(config, parser, name)
+            codes = generate_random_code(config, parser, name)
+            save_codes(codes, config, name)
         else:
             save_code_and_examples(config, parser, name)
 

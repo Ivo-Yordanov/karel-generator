@@ -69,7 +69,8 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
                     outputs.append(output_world)
 
                     token_idxes = parser.lex_to_idx(code, details=True)
-                    codes.append(token_idxes)
+                    # codes.append(token_idxes)
+                    codes.append(code)
                     code_lengths.append(len(token_idxes))
             except TimeoutError:
                 if config.debug:

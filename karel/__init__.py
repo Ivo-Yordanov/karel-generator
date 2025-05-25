@@ -1,6 +1,7 @@
 from .parser_with_curly import KarelWithCurlyParser
 from .parser_for_synthesis import KarelForSynthesisParser
 from .utils import str2bool, makedirs, pprint, beautify, TimeoutError
+from .karel import Karel
 
 from datetime import datetime
 

@@ -5,10 +5,10 @@ import karel
 class TestKarelExamples(unittest.TestCase):
 
     def test_karel_outputs_per_code_block(self):
-        data_file = 'data/train.npz'  # Adjust path as needed
+        data_file = 'data/data.npz'  # Adjust path as needed
         debug = False
 
-        data = np.load(data_file, allow_pickle=True)
+        data = np.load(data_file)
         num_per_code = int(data['num_examples_per_code'])  # should be scalar or 1D array
 
         total_examples = len(data['inputs'])

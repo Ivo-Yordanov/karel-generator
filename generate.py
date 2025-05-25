@@ -81,13 +81,15 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
             break
 
 
+    if name == 'train':
+        name = 'data'
     npz_path = os.path.join(config.data_dir, name)
     np.savez(npz_path,
              num_examples_per_code=np.array(config.num_examples),
-             inputs=np.array(inputs, dtype=object),
-             outputs=np.array(outputs, dtype=object),
-             codes=np.array(codes, dtype=object),
-             code_lengths=np.array(code_lengths, dtype=object))
+             inputs=np.array(inputs),
+             outputs=np.array(outputs),
+             codes=np.array(codes),
+             code_lengths=np.array(code_lengths))
 
 def main():
     arg_parser = argparse.ArgumentParser()

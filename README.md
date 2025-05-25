@@ -61,7 +61,7 @@ which will generate `data/train.npz`, `data/test.npz` and `data/val.npz` and you
 
 ```python
 data = np.load(npz_path)
-for input, output, code in zip(data['inputs'], data[outputs'], data['codes']):
+for input, output, code in zip(data['inputs'], data['outputs'], data['codes']):
     train(input, output, code)
 ```
 

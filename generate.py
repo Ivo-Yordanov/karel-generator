@@ -51,6 +51,8 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutof
 
 def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     data_num = getattr(config, "num_{}".format(name))
+    if data_num <= 0:
+        return
     inputs, outputs, codes, code_lengths = [], [], [], []
     for _ in trange(0, data_num, config.num_examples, file=sys.stdout):
         while True:
@@ -80,6 +82,7 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
 
     npz_path = os.path.join(config.data_dir, name)
     np.savez(npz_path,
+             num_examples_per_code=np.array(config.num_examples),
              inputs=np.array(inputs, dtype=object),
              outputs=np.array(outputs, dtype=object),
              codes=np.array(codes, dtype=object),

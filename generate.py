@@ -69,7 +69,6 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     for _ in trange(0, data_num, config.num_examples, file=sys.stdout):
         while True:
             code = parser.random_code(stmt_max_depth=config.max_depth)
-            codes.append(code)
 
             if config.debug:
                 tqdm.write("")
@@ -91,6 +90,7 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
                 continue
             if config.debug:
                 tqdm.write("Pass. Generated enough worlds for code snippet.")
+            codes.append(code)
             break
 
 
@@ -104,6 +104,7 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
              code_lengths=np.array(code_lengths))
 
     if config.mode == "both":
+        config.beautify = True
         save_codes(np.array(codes), config, name)
 
 def main():

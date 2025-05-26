@@ -25,19 +25,25 @@ def generate_random_code(config: Namespace, parser: Parser, name: str):
     return codes
 
 
-def save_codes(codes: np.ndarray, config: Namespace, name: str):
-    text = ""
-    text_path = os.path.join(config.data_dir, "{}.txt".format(name))
+def save_codes(codes: list | np.ndarray, config: Namespace, name: str):
+    codes_str = ""
+    codes_path = os.path.join(config.data_dir, "{}_single_line_codes.txt".format(name))
+    pretty_codes_str = ""
+    pretty_codes_path = os.path.join(config.data_dir, "{}_multi_line_codes.txt".format(name))
+
 
     for code in codes:
-        if config.beautify:
-            code = beautify(code)
-        text += code + "\n"
-    with open(text_path, 'w') as f:
-        f.write(text)
+        codes_str += code + "\n"
+        pretty_codes_str += beautify(code) + "\n"
+
+    with open(codes_path, 'w') as f:
+        f.write(codes_str)
+    with open(pretty_codes_path, 'w') as f:
+        f.write(pretty_codes_str)
 
 
-def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutoff=np.inf):
+
+def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutoff=np.inf, allow_equal_start_and_end=True):
     i = 0
     while i < cutoff:
         i += 1
@@ -48,6 +54,8 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutof
         try:
             parser.run(code)
             output_world = parser.get_state()
+            if not allow_equal_start_and_end and np.array_equal(input_world, output_world):
+                continue
         except TimeoutError:
             continue
         except IndexError:
@@ -61,7 +69,7 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutof
     raise TimeoutError("Generated too many worlds for code example")
 
 
-def save_code_and_examples(config: Namespace, parser: Parser, name: str):
+def save_code_and_examples(config: Namespace, parser: Parser, name: str, percentage_examples_no_change=0.5):
     data_num = getattr(config, "num_{}".format(name))
     if data_num <= 0:
         return
@@ -69,6 +77,8 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
     for _ in trange(0, data_num, config.num_examples, file=sys.stdout):
         while True:
             code = parser.random_code(stmt_max_depth=config.max_depth)
+            num_no_change = percentage_examples_no_change * config.num_examples
+            curr_inputs, curr_outputs, curr_code_lengths = [], [], [] # We are not sure if these will be added yet
 
             if config.debug:
                 tqdm.write("")
@@ -76,23 +86,30 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
                 tqdm.write(code)
             try:
                 for _ in range(config.num_examples):
-                    input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=10000)
+                    input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=10000,
+                                                                allow_equal_start_and_end=(num_no_change > 0))
+                    if np.array_equal(input_world, output_world):
+                        num_no_change -= 1
 
-                    inputs.append(input_world)
-                    outputs.append(output_world)
+                    curr_inputs.append(input_world)
+                    curr_outputs.append(output_world)
 
                     token_idxes = parser.lex_to_idx(code, details=True)
                     # codes.append(token_idxes)
-                    code_lengths.append(len(token_idxes))
+                    curr_code_lengths.append(len(token_idxes))
             except TimeoutError:
                 if config.debug:
                     tqdm.write("Fail. Could not find enough worlds for code snippet.")
                 continue
             if config.debug:
                 tqdm.write("Pass. Generated enough worlds for code snippet.")
+            inputs.extend(curr_inputs)
+            outputs.extend(curr_outputs)
             codes.append(code)
+            code_lengths.extend(curr_code_lengths)
             break
 
+    assert len(inputs) % config.num_examples == 0
 
     if name == 'train':
         name = 'data'
@@ -104,8 +121,7 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
              code_lengths=np.array(code_lengths))
 
     if config.mode == "both":
-        config.beautify = True
-        save_codes(np.array(codes), config, name)
+        save_codes(codes, config, name)
 
 def main():
     arg_parser = argparse.ArgumentParser()
@@ -118,7 +134,6 @@ def main():
     arg_parser.add_argument('--max_depth', type=int, default=5)
     arg_parser.add_argument('--mode', type=str, default='both', choices=['code_only', 'examples_only', 'both'],
                           help='What to save in the output file - only the generated code or also example worlds with that code')
-    arg_parser.add_argument('--beautify', type=str2bool, default=False)
     arg_parser.add_argument('--world_height', type=int, default=8, help='Height of square grid world')
     arg_parser.add_argument('--world_width', type=int, default=8, help='Width of square grid world')
     arg_parser.add_argument('--debug', type=str2bool, default=False, help='Print generated worlds and code')

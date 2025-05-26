@@ -6,7 +6,7 @@ class TestKarelExamples(unittest.TestCase):
 
     def test_karel_outputs_per_code_block(self):
         data_file = 'data/data.npz'
-        codes_file = 'data/data.txt'
+        codes_file = 'data/data_single_line_codes.txt'
         debug = True
 
         data = np.load(data_file)

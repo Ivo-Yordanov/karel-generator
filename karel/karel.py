@@ -7,7 +7,9 @@ import numpy as np
 from collections import Counter
 
 from .hero import Hero
-from .utils import Tcolors, get_rng
+from .utils import Tcolors, get_rng, InvalidOperation
+
+
 
 def draw2d(array):
     print("\n".join(["".join(["#" if val > 0 else "." for val in row]) for row in array]))
@@ -169,7 +171,7 @@ class Karel(object):
         for (x, y), count in Counter(self.markers).items():
             canvas[y][x] = str(count)
 
-        canvas[self.hero.position[1]][self.hero.position[0]] = self.hero_char()
+        # canvas[self.hero.position[1]][self.hero.position[0]] = self.hero_char()
 
         texts = []
         for idx, row in enumerate(canvas):
@@ -308,14 +310,14 @@ class Karel(object):
                 self.hero.pick_marker()
                 break
         else:
-            #raise Exception('can\'t pick marker from empty location')
+            raise InvalidOperation('can\'t pick marker from empty location')
             pass
 
     @marker_action
     def put_marker(self):
         '''Put marker'''
         if not self.hero.holding_markers():
-            #raise Exception('can\'t put marker. Hero has none')
+            raise InvalidOperation('can\'t put marker. Hero has none')
             pass
         else:
             self.markers.append(self.hero.position)

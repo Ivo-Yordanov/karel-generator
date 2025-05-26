@@ -8,6 +8,9 @@ from pyparsing import nestedExpr
 class TimeoutError(Exception):
     pass
 
+class InvalidOperation(Exception):
+    pass
+
 def str2bool(v):
     return v.lower() in ('true', '1')
 

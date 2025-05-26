@@ -1,10 +1,10 @@
 # Code based on https://github.com/alts/karel
 
 class Hero(object):
-    def __init__(self, position, facing, marker_bag=None):
+    def __init__(self, position, facing, marker_bag=0):
         self.position = position
         self.facing = facing
-        self.marker_bag = None
+        self.marker_bag = marker_bag
 
     def move(self):
         self.position = (

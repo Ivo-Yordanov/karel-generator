@@ -6,7 +6,7 @@ from argparse import Namespace
 import numpy as np
 
 from karel import KarelWithCurlyParser, KarelForSynthesisParser
-from karel import str2bool, makedirs, pprint, beautify, TimeoutError
+from karel import str2bool, makedirs, pprint, beautify, TimeoutError, InvalidOperation
 from karel.parser_base import Parser
 
 try:
@@ -52,6 +52,9 @@ def generate_world_from_code(config: Namespace, parser: Parser, code: str, cutof
             continue
         except IndexError:
             continue
+        except InvalidOperation:
+            continue
+
 
         return input_world, output_world, init_world_str
 
@@ -74,7 +77,7 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
                 tqdm.write(code)
             try:
                 for _ in range(config.num_examples):
-                    input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=100)
+                    input_world, output_world, init_world_str = generate_world_from_code(config, parser, code, cutoff=10000)
 
                     inputs.append(input_world)
                     outputs.append(output_world)
@@ -105,9 +108,9 @@ def save_code_and_examples(config: Namespace, parser: Parser, name: str):
 
 def main():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--num_train', type=int, default=1000000)
-    arg_parser.add_argument('--num_test', type=int, default=5000)
-    arg_parser.add_argument('--num_val', type=int, default=5000)
+    arg_parser.add_argument('--num_train', type=int, default=100)
+    arg_parser.add_argument('--num_test', type=int, default=0)
+    arg_parser.add_argument('--num_val', type=int, default=0)
     arg_parser.add_argument('--num_examples', type=int, default=10, help='Number of examples per generated code')
     arg_parser.add_argument('--parser_type', type=str, default='curly', choices=['curly', 'synthesis'])
     arg_parser.add_argument('--data_dir', type=str, default='data')
